@@ -1,0 +1,86 @@
+--Chack Datasets 
+select*
+from dbo.covid_deaths
+
+select*
+from dbo.covid_vacctinacions
+
+
+--Select data I m going to use 
+
+select location,date,total_cases,new_cases,total_deaths,population
+from dbo.covid_deaths
+
+--Looking in Total Cases vs Total Deaths for Montenegro,Croatia,Serbia in percent
+
+select location,date,total_cases,total_deaths,(total_deaths/total_cases)*100 as death_percenage
+from dbo.covid_deaths
+where  location in ('Serbia','Montenegro','Croatia');
+
+--Looking at Total Cases vs Population ,show what percenage of population got Covid for Montenegro,Croatia,Serbia
+
+select location,date,total_cases,total_deaths,population,(total_cases/population)*100 as population_percenage
+from dbo.covid_deaths
+where  location in ('Serbia','Montenegro','Croatia' )
+
+--Loking at countries with highiest infection rate comperder with population
+
+select [location], MAX(total_cases) as intection_count,population,MAX((total_cases/population))*100 as percetn_popualtion_infection
+from dbo.covid_deaths
+GROUP by [location],population
+ORDER by percetn_popualtion_infection DESC;
+
+--Looking at countries with highiest death count per population 
+
+select location,max(total_deaths) as deaths_count
+from dbo.covid_deaths
+where continent is not NULL
+group by [location]
+order by deaths_count DESC
+
+
+--Number of golabal infection cases and death cases for eaxh day 
+
+select date,sum(new_cases) as global_cases,sum(new_deaths) as global_death,
+(sum(new_deaths)/sum(new_cases))*100 as global_death_percentage
+from dbo.covid_deaths
+where continent is not NULL
+group by date 
+order by date;
+
+--Join covid_deaths table and Covid_Vacctinacion table together and look at  total populacion vs vacctination
+
+select d.continent,d.[location],d.date,d.population,v.new_vaccinations
+from dbo.covid_deaths d 
+join dbo.Covid_Vacctinacions v 
+    on d.[location] = v.[location] 
+    and d.[date] = v.[date]
+where d.continent is not NULL
+order by 2,3;
+
+--Rolling count of now vacctionations 
+
+select d.continent,d.[location],d.date,d.population,v.new_vaccinations,
+sum(v.new_vaccinations) over (partition by d.location order by d.location, d.date) as rolling_count_vacctination
+from dbo.covid_deaths d 
+join dbo.Covid_Vacctinacions v 
+    on d.[location] = v.[location] 
+    and d.[date] = v.[date]
+where d.continent is not NULL and d.location = 'United States'
+order by 2,3;
+
+--Looking in percentage of vacctianted people by date in USA using CTE
+
+with Population_vs_Vacctinated(Continent,Location,Date,Population,New_Vaccinacions,Rolling_Count_Vacctination)
+as
+(
+select d.continent,d.[location],d.date,d.population,v.new_vaccinations,
+sum(v.new_vaccinations) over (partition by d.location order by d.location, d.date) as rolling_count_vacctination
+from dbo.covid_deaths d 
+join dbo.Covid_Vacctinacions v 
+    on d.[location] = v.[location] 
+    and d.[date] = v.[date]
+where d.continent is not NULL and d.location = 'United States'
+)
+select *,(Rolling_Count_Vacctination/Population)*100 as Percent_Vacctiated 
+from Population_vs_Vacctinated;
