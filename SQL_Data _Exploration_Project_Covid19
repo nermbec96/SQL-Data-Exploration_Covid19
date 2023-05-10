@@ -39,7 +39,7 @@ group by [location]
 order by deaths_count DESC
 
 
---Number of golabal infection cases and death cases for eaxh day 
+--Number of golabal infection cases and death cases for each day 
 
 select date,sum(new_cases) as global_cases,sum(new_deaths) as global_death,
 (sum(new_deaths)/sum(new_cases))*100 as global_death_percentage
